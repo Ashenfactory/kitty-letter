@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title></title>
+	<style type="text/css">
+		body,
+		html {
+			display: grid;
+			margin: 0;
+			padding: 0;
+			user-select: none;
+		}
+
+		body {
+			font-family: monospace;
+			background-color: #000;
+			font-size: 24px;
+			color: #fff;
+		}
+
+		table {
+			margin: auto;
+			border-spacing: .5rem;
+		}
+
+		tbody {
+			transition: opacity .3s ease-in;
+		}
+
+		td {
+			width: 3rem;
+			height: 3rem;
+			text-align: center;
+			border: 2px solid #666;
+			transition: background .2s ease-in, border .2s ease-in;
+		}
+
+		p {
+			max-width: 80%;
+			margin-left: auto;
+			margin-right: auto;
+		}
+
+		span {
+			transition: color .2s ease-in;
+		}
+
+		.current {
+			color: #ff8500;
+		}
+
+		.inactive td {
+			background-color: #666;
+		}
+
+		td.correct-letter {
+			background-color: #ff8500;
+			border-color: #ff8500;
+		}
+
+		td.correct-placement {
+			background-color: #588157;
+			border-color: #588157;
+		}
+
+		.keyboard {
+			display: flex;
+			margin-right: auto;
+			margin-left: auto;
+			flex-direction: column;
+			transition: opacity .3s ease-in;
+		}
+
+		.keyboard.inactive {
+			opacity: .75;
+		}
+
+		.keyboard.inactive div {
+			opacity: 1 !important;
+			cursor: auto;
+		}
+
+		.row {
+			display: flex;
+			justify-content: center;
+		}
+
+		.row div {
+			background-color: #666;
+			padding: .5rem 1rem;
+			margin: .25rem;
+			text-align: center;
+			transition: opacity .1s ease-in, background .2s ease-in;
+			cursor: pointer;
+			width: 1rem;
+		}
+
+		.row div:hover {
+			opacity: .5;
+		}
+
+		.row div:active {
+			opacity: .25;
+		}
+
+		.row div.incorrect-letter {
+			background-color: #333;
+		}
+
+		.row div.correct-letter {
+			background-color: #ff8500;
+		}
+
+		.row div.correct-placement {
+			background-color: #588157;
+		}
+
+		.row div.big-button {
+			width: 2.8rem;
+		}
+	</style>
+</head>
+<body>
+	<p id="sentence"></p>
+
+	<table>
+		<tbody id="guesses" style="opacity: 0">
+			<tr>
+				<td></td>
+			</tr>
+			<tr>
+				<td></td>
+			</tr>
+			<tr>
+				<td></td>
+			</tr>
+			<tr>
+				<td></td>
+			</tr>
+			<tr>
+				<td></td>
+			</tr>
+			<tr>
+				<td></td>
+			</tr>
+		</tbody>
+	</table>
+
+	<div id="keyboard" class="keyboard inactive">
+		<div class="row">
+			<div data-key="q">q</div>
+			<div data-key="w">w</div>
+			<div data-key="e">e</div>
+			<div data-key="r">r</div>
+			<div data-key="t">t</div>
+			<div data-key="y">y</div>
+			<div data-key="u">u</div>
+			<div data-key="i">i</div>
+			<div data-key="o">o</div>
+			<div data-key="p">p</div>
+		</div>
+		<div class="row">
+			<div data-key="a">a</div>
+			<div data-key="s">s</div>
+			<div data-key="d">d</div>
+			<div data-key="f">f</div>
+			<div data-key="g">g</div>
+			<div data-key="h">h</div>
+			<div data-key="j">j</div>
+			<div data-key="k">k</div>
+			<div data-key="l">l</div>
+		</div>
+		<div class="row">
+			<div class="big-button" data-key="Enter">&#x21b5;</div>
+			<div data-key="z">z</div>
+			<div data-key="x">x</div>
+			<div data-key="c">c</div>
+			<div data-key="v">v</div>
+			<div data-key="b">b</div>
+			<div data-key="n">n</div>
+			<div data-key="m">m</div>
+			<div class="big-button" data-key="Backspace">&#x232b;</div>
+		</div>
+	</div>
+
+	<script type="text/javascript">
+		function shuffle(array, seed) {
+			let m = array.length;
+			let t;
+			let i;
+
+			while (m) {
+				i = Math.floor(random(seed) * m--);
+				t = array[m];
+				array[m] = array[i];
+				array[i] = t;
+				++seed;
+			}
+
+			return array;
+		}
+
+		function random(seed) {
+			let x = Math.sin(seed++) * 10000; 
+			return x - Math.floor(x);
+		}
+
+		function dateDiffInDays(a, b) {
+		  const utc1 = Date.UTC(a.getFullYear(), a.getMonth(), a.getDate());
+		  const utc2 = Date.UTC(b.getFullYear(), b.getMonth(), b.getDate());
+
+		  return Math.floor((utc2 - utc1) / 86400000);
+		}
+
+		function encode(string) {
+			return window.btoa(unescape(encodeURIComponent(string))).replaceAll('=', '');
+		}
+
+		function init() {
+			const customString = (new URLSearchParams(document.location.search)).get('s');
+
+			if (!customString) {
+				let dateIndex = dateDiffInDays(new Date('2022-05-07'), new Date());
+
+				if (dateIndex > sentences.length - 1) {
+					dateIndex = dateIndex % sentences.length - 1;
+				}
+
+				selectedSentence = sentences[dateIndex].text;
+			} else {
+				selectedSentence = decodeURIComponent(escape(window.atob(customString)));
+			}
+			
+			sentenceElements = selectedSentence.split(/[^a-z]/gi).filter(e => e);
+			word = sentenceElements[0].toLowerCase();
+
+			sentenceContainer.innerHTML = selectedSentence.replaceAll(/[a-z]/gi, '_').replaceAll(/_+/g, '<span>$&</span>');
+			generateTable(word.length);
+
+			allowInput = true;
+			keyboard.classList.remove('inactive');
+			guesses.style.opacity = 1;
+		}
+
+		let sentences = [
+			'Oh dear, we couldn\'t seem to reach the quotes database'
+		];
+
+		const sentenceContainer = document.getElementById('sentence');
+
+		let selectedSentence;
+		let sentenceElements;
+		let word;
+
+		const guesses = document.getElementById('guesses');
+		const keyboard = document.getElementById('keyboard');
+
+		let sentenceIndex = 0;
+		let wordIndex = 0;
+		let guess = '';
+		let allowInput = false;
+
+		let guessRows;
+		let inputCells;
+		let guessCount;
+
+		function generateTable(size) {
+			let html = '';
+
+			for (let i = 0; i < 6; i++) {
+				html += '<tr>';
+
+				for (let j = size; j > 0; j--) {
+					html += '<td>';
+				}
+
+				html += '</tr>';
+			}
+
+			guesses.innerHTML = html;
+			guesses.parentNode.className = '';
+
+			guessRows = guesses.children;
+			inputCells = guessRows[0].children;
+			guessCount = 0;
+
+			sentenceContainer.querySelector('span:nth-of-type(' + (sentenceIndex + 1) + ')').className = 'current';
+		}
+
+		function keyInput(pressedKey) {
+			if (allowInput) {
+				if (pressedKey === 'Enter' && guess.length === word.length) {
+					const wordLetters = word.split('');
+
+					for (let i = guess.length - 1; i >= 0; i--) {
+						inputCells[i].innerHTML = guess[i];
+
+						if (guess[i] === word[i]) {
+							const key = keyboard.querySelector('[data-key="' + guess[i] + '"]');
+
+							wordLetters.splice(i, 1);
+
+							inputCells[i].className = 'correct-placement';
+							key.className = 'correct-placement';
+						}
+					}
+
+					for (let i = 0; i < guess.length; i++) {
+						const key = keyboard.querySelector('[data-key="' + guess[i] + '"]');
+						const letterIndex = wordLetters.indexOf(guess[i]);
+						
+						if (letterIndex !== -1 && !inputCells[i].className) {
+							inputCells[i].className = 'correct-letter';
+
+							wordLetters.splice([letterIndex], 1);
+
+							if (key.className !== 'correct-placement') {
+								key.className = 'correct-letter';
+							}
+						} else if (!key.className) {
+							key.className = 'incorrect-letter';
+						}
+					}
+
+					guessRows[guessCount].className = 'inactive';
+
+					if (guess === word) {
+						allowInput = false;
+						keyboard.classList.add('inactive');
+
+
+						const oldWord = sentenceContainer.querySelector('span:nth-of-type(' + (sentenceIndex + 1) + ')');
+
+						oldWord.innerHTML = sentenceElements[sentenceIndex];
+						oldWord.className = '';
+
+						if (sentenceIndex !== sentenceElements.length - 1) {
+							setTimeout(() => {
+								guesses.style.opacity = 0;
+							}, 1000);
+							
+							word = sentenceElements[++sentenceIndex].toLowerCase();
+
+							setTimeout(() => {
+								allowInput = true;
+								keyboard.classList.remove('inactive');
+
+								generateTable(word.length);
+
+								keyboard.querySelectorAll('[data-key]').forEach(key => {
+									if (!key.classList.contains('big-button')) {
+										key.className = '';
+									}
+								});
+
+								setTimeout(() => {
+									guesses.style.opacity = 1;
+								}, 10);
+							}, 1300);
+						}
+					} else if (guessCount === 5) {
+						allowInput = false;
+						keyboard.classList.add('inactive');
+					} else {
+						inputCells = guessRows[++guessCount].children;
+					}
+
+					guess = '';
+				} else if ((pressedKey === 'Backspace' || pressedKey === 'Delete') && guess.length > 0) {
+					guess = guess.slice(0, -1);
+					inputCells[guess.length].innerHTML = '';
+				} else if (pressedKey.match(/^[a-z]$/i) && guess.length < word.length) {
+					const input = pressedKey.toLowerCase();
+
+					inputCells[guess.length].innerHTML = input;
+					guess += input;
+				}
+			}
+		}
+
+		document.addEventListener('keydown', e => {
+			keyInput(e.key);
+		});
+
+		keyboard.addEventListener('click', e => {
+			if (e.target.dataset.key) {
+				keyInput(e.target.dataset.key);
+			}
+		});
+
+		fetch('https://raw.githubusercontent.com/dwyl/quotes/main/quotes.json')
+			.then(response => response.json())
+			.then(data => {
+				let filterData = data.filter(o => {
+					return o.text.length <= 64 || o.text.split(" ").length <= 10;
+				});
+
+				sentences = (shuffle(filterData, 801304));
+			})
+			.then(() => {
+				init();
+			}
+		);
+	</script>
+</body>
+</html> 
