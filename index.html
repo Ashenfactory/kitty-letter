@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html>
+<html lang="en-US">
 <head>
 	<meta charset="utf-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1">
-	<title></title>
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+	<title>Kitty Letter</title>
 	<style type="text/css">
 		body,
 		html {
@@ -11,12 +11,20 @@
 			margin: 0;
 			padding: 0;
 			user-select: none;
+			min-width: 480px;
+			height: 100%;
+			image-rendering: pixelated;
+		}
+
+		@font-face {
+			font-family: 'Pixolletta8px';
+			src: url('assets/Pixolletta8px.ttf');
 		}
 
 		body {
-			font-family: monospace;
+			font-family: 'Pixolletta8px', monospace;
+			font-size: 20px;
 			background-color: #000;
-			font-size: 24px;
 			color: #fff;
 		}
 
@@ -30,17 +38,32 @@
 		}
 
 		td {
-			width: 3rem;
-			height: 3rem;
+			width: 48px;
+			height: 44px;
+			padding: 4px 0 0 0;
 			text-align: center;
+			vertical-align: middle;
 			border: 2px solid #666;
 			transition: background .2s ease-in, border .2s ease-in;
+			text-transform: uppercase;
 		}
 
 		p {
-			max-width: 80%;
-			margin-left: auto;
-			margin-right: auto;
+			margin: 16px 0;
+			letter-spacing: 4px;
+		}
+
+		.sentence-container {
+			margin: 0 auto;
+			display: flex;
+			width: 100%;
+		}
+
+		.sentence-container img {
+			margin: 16px 16px 0 8px;
+			height: 128px;
+			width: 128px;
+			border: 2px solid #666;
 		}
 
 		span {
@@ -71,6 +94,23 @@
 			margin-left: auto;
 			flex-direction: column;
 			transition: opacity .3s ease-in;
+			text-transform: uppercase;
+			justify-content: flex-end;
+			margin-bottom: 8px;
+		}
+
+		.enter {
+			background-image: url(assets/enter.png);
+			background-position: center;
+			background-repeat: no-repeat;
+			background-size: 20px 16px;
+		}
+
+		.backspace {
+			background-image: url(assets/backspace.png);
+			background-position: center;
+			background-repeat: no-repeat;
+			background-size: 28px 18px;
 		}
 
 		.keyboard.inactive {
@@ -89,20 +129,32 @@
 
 		.row div {
 			background-color: #666;
-			padding: .5rem 1rem;
-			margin: .25rem;
+			margin: 4px;
 			text-align: center;
 			transition: opacity .1s ease-in, background .2s ease-in;
 			cursor: pointer;
-			width: 1rem;
+			padding-top: 4px;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			border-bottom: 2px solid #333;
+			height: 36px;
+			width: 40px;
+		}
+
+		.row .big-button {
+			width: 64px;
 		}
 
 		.row div:hover {
 			opacity: .5;
 		}
 
-		.row div:active {
+		.row div:active,
+		.row div.active {
 			opacity: .25;
+			border-top: 2px solid #000;
+			border-bottom: none;
 		}
 
 		.row div.incorrect-letter {
@@ -117,13 +169,29 @@
 			background-color: #588157;
 		}
 
-		.row div.big-button {
-			width: 2.8rem;
+		@media (min-width: 576px) {
+			.row div {
+				width: 48px;
+				height: 44px;
+			}
+
+			.row .big-button {
+				width: 76px;
+			}
+		}
+
+		@media (min-width:  768px) {
+			.sentence-container {
+				max-width: 80%;
+			}
 		}
 	</style>
 </head>
 <body>
-	<p id="sentence"></p>
+	<div class="sentence-container">
+		<img id="image" src="assets/nin-pixel-cat/neutral.png">
+		<p id="sentence"></p>
+	</div>
 
 	<table>
 		<tbody id="guesses" style="opacity: 0">
@@ -173,7 +241,7 @@
 			<div data-key="l">l</div>
 		</div>
 		<div class="row">
-			<div class="big-button" data-key="Enter">&#x21b5;</div>
+			<div class="big-button enter" data-key="enter"></div>
 			<div data-key="z">z</div>
 			<div data-key="x">x</div>
 			<div data-key="c">c</div>
@@ -181,7 +249,7 @@
 			<div data-key="b">b</div>
 			<div data-key="n">n</div>
 			<div data-key="m">m</div>
-			<div class="big-button" data-key="Backspace">&#x232b;</div>
+			<div class="big-button backspace" data-key="backspace"></div>
 		</div>
 	</div>
 
@@ -249,6 +317,7 @@
 		];
 
 		const sentenceContainer = document.getElementById('sentence');
+		const imageContainer = document.getElementById('image');
 
 		let selectedSentence;
 		let sentenceElements;
@@ -265,6 +334,7 @@
 		let guessRows;
 		let inputCells;
 		let guessCount;
+		let moodTimer;
 
 		function generateTable(size) {
 			let html = '';
@@ -289,9 +359,31 @@
 			sentenceContainer.querySelector('span:nth-of-type(' + (sentenceIndex + 1) + ')').className = 'current';
 		}
 
+		function setMood(mood, revert = true) {
+			clearTimeout(moodTimer);
+
+			imageContainer.src = 'assets/nin-pixel-cat/' + mood + '.png';
+
+			if (revert) {
+				moodTimer = setTimeout(() => {
+					imageContainer.src = 'assets/nin-pixel-cat/neutral.png'
+				}, 3000);
+			}
+		}
+
 		function keyInput(pressedKey) {
 			if (allowInput) {
-				if (pressedKey === 'Enter' && guess.length === word.length) {
+				const keyElement = keyboard.querySelector('[data-key="' + pressedKey + '"]');
+
+				if (keyElement) {
+					keyElement.classList.add('active');
+
+					setTimeout(() => {
+						keyElement.classList.remove('active');
+					}, 100);
+				}
+
+				if (pressedKey === 'enter' && guess.length === word.length) {
 					const wordLetters = word.split('');
 
 					for (let i = guess.length - 1; i >= 0; i--) {
@@ -330,7 +422,6 @@
 						allowInput = false;
 						keyboard.classList.add('inactive');
 
-
 						const oldWord = sentenceContainer.querySelector('span:nth-of-type(' + (sentenceIndex + 1) + ')');
 
 						oldWord.innerHTML = sentenceElements[sentenceIndex];
@@ -359,29 +450,35 @@
 									guesses.style.opacity = 1;
 								}, 10);
 							}, 1300);
+
+							setMood('smile');
+						} else {
+							setMood('happy', false);
 						}
 					} else if (guessCount === 5) {
 						allowInput = false;
 						keyboard.classList.add('inactive');
+
+						setMood('sad', false);
 					} else {
 						inputCells = guessRows[++guessCount].children;
+
+						setMood('pensive');
 					}
 
 					guess = '';
-				} else if ((pressedKey === 'Backspace' || pressedKey === 'Delete') && guess.length > 0) {
+				} else if ((pressedKey === 'backspace' || pressedKey === 'delete') && guess.length > 0) {
 					guess = guess.slice(0, -1);
 					inputCells[guess.length].innerHTML = '';
 				} else if (pressedKey.match(/^[a-z]$/i) && guess.length < word.length) {
-					const input = pressedKey.toLowerCase();
-
-					inputCells[guess.length].innerHTML = input;
-					guess += input;
+					inputCells[guess.length].innerHTML = pressedKey;
+					guess += pressedKey;
 				}
 			}
 		}
 
 		document.addEventListener('keydown', e => {
-			keyInput(e.key);
+			keyInput(e.key.toLowerCase());
 		});
 
 		keyboard.addEventListener('click', e => {
