@@ -11,7 +11,7 @@
 			margin: 0;
 			padding: 0;
 			user-select: none;
-			min-width: 480px;
+			min-width: 320px;
 			height: 100%;
 			image-rendering: pixelated;
 		}
@@ -28,39 +28,52 @@
 			color: #fff;
 		}
 
-		table {
-			margin: auto;
-			border-spacing: .5rem;
-		}
-
-		tbody {
+		.guesses-container {
+			display: flex;
+			flex-direction: column;
 			transition: opacity .3s ease-in;
 		}
 
-		td {
-			width: 48px;
-			height: 44px;
-			padding: 4px 0 0 0;
-			text-align: center;
-			vertical-align: middle;
+		.guess-row {
+			display: flex;
+			flex-direction: row;
+			width: 100%;
+			justify-content: center;
+		}
+
+		.guess-letter {
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			max-width: 44px;
+			max-height: 44px;
+			margin: 4px;
+			width: 100%;
 			border: 2px solid #666;
 			transition: background .2s ease-in, border .2s ease-in;
 			text-transform: uppercase;
 		}
 
+		.guess-letter::before,
+		.row div::before {
+			content: '';
+			display: inline-block;
+			padding-bottom: 100%;
+		}
+
 		p {
-			margin: 16px 0;
+			margin: 0;
 			letter-spacing: 4px;
 		}
 
 		.sentence-container {
-			margin: 0 auto;
+			margin: 8px auto;
 			display: flex;
 			width: 100%;
 		}
 
 		.sentence-container img {
-			margin: 16px 16px 0 8px;
+			margin: 0 16px 0 8px;
 			height: 128px;
 			width: 128px;
 			border: 2px solid #666;
@@ -74,29 +87,28 @@
 			color: #ff8500;
 		}
 
-		.inactive td {
+		.inactive .guess-letter {
 			background-color: #666;
 		}
 
-		td.correct-letter {
+		.guess-letter.correct-letter {
 			background-color: #ff8500;
 			border-color: #ff8500;
 		}
 
-		td.correct-placement {
+		.guess-letter.correct-placement {
 			background-color: #588157;
 			border-color: #588157;
 		}
 
 		.keyboard {
 			display: flex;
-			margin-right: auto;
-			margin-left: auto;
 			flex-direction: column;
 			transition: opacity .3s ease-in;
 			text-transform: uppercase;
 			justify-content: flex-end;
-			margin-bottom: 8px;
+			width: 100%;
+			margin: 8px auto;
 		}
 
 		.enter {
@@ -133,17 +145,23 @@
 			text-align: center;
 			transition: opacity .1s ease-in, background .2s ease-in;
 			cursor: pointer;
-			padding-top: 4px;
 			display: flex;
 			align-items: center;
 			justify-content: center;
 			border-bottom: 2px solid #333;
-			height: 36px;
-			width: 40px;
+			width: 100%;
+			min-height: 40px;
+			max-width: 40px;
+			max-height: 40px;
+		}
+
+		.row:nth-child(2) {
+			margin: 0 3.75%;
 		}
 
 		.row .big-button {
-			width: 64px;
+			max-width: 64px;
+			width: 150%;
 		}
 
 		.row div:hover {
@@ -171,12 +189,12 @@
 
 		@media (min-width: 576px) {
 			.row div {
-				width: 48px;
-				height: 44px;
+				max-width: 44px;
+				max-height: 44px;
 			}
 
 			.row .big-button {
-				width: 76px;
+				max-width: 76px;
 			}
 		}
 
@@ -193,28 +211,26 @@
 		<p id="sentence"></p>
 	</div>
 
-	<table>
-		<tbody id="guesses" style="opacity: 0">
-			<tr>
-				<td></td>
-			</tr>
-			<tr>
-				<td></td>
-			</tr>
-			<tr>
-				<td></td>
-			</tr>
-			<tr>
-				<td></td>
-			</tr>
-			<tr>
-				<td></td>
-			</tr>
-			<tr>
-				<td></td>
-			</tr>
-		</tbody>
-	</table>
+	<div class="guesses-container" id="guesses" style="opacity: 0">
+		<div class="guess-row">
+			<div class="guess-letter"></div>
+		</div>
+		<div class="guess-row">
+			<div class="guess-letter"></div>
+		</div>
+		<div class="guess-row">
+			<div class="guess-letter"></div>
+		</div>
+		<div class="guess-row">
+			<div class="guess-letter"></div>
+		</div>
+		<div class="guess-row">
+			<div class="guess-letter"></div>
+		</div>
+		<div class="guess-row">
+			<div class="guess-letter"></div>
+		</div>
+	</div>
 
 	<div id="keyboard" class="keyboard inactive">
 		<div class="row">
@@ -340,17 +356,17 @@
 			let html = '';
 
 			for (let i = 0; i < 6; i++) {
-				html += '<tr>';
+				html += '<div class="guess-row">';
 
 				for (let j = size; j > 0; j--) {
-					html += '<td>';
+					html += '<div class="guess-letter"></div>';
 				}
 
-				html += '</tr>';
+				html += '</div>';
 			}
 
 			guesses.innerHTML = html;
-			guesses.parentNode.className = '';
+			guesses.classList.remove('inactive');
 
 			guessRows = guesses.children;
 			inputCells = guessRows[0].children;
@@ -394,7 +410,7 @@
 
 							wordLetters.splice(i, 1);
 
-							inputCells[i].className = 'correct-placement';
+							inputCells[i].classList.add('correct-placement');
 							key.className = 'correct-placement';
 						}
 					}
@@ -403,8 +419,8 @@
 						const key = keyboard.querySelector('[data-key="' + guess[i] + '"]');
 						const letterIndex = wordLetters.indexOf(guess[i]);
 						
-						if (letterIndex !== -1 && !inputCells[i].className) {
-							inputCells[i].className = 'correct-letter';
+						if (letterIndex !== -1 && inputCells[i].className === 'guess-letter') {
+							inputCells[i].classList.add('correct-letter');
 
 							wordLetters.splice([letterIndex], 1);
 
@@ -416,7 +432,7 @@
 						}
 					}
 
-					guessRows[guessCount].className = 'inactive';
+					guessRows[guessCount].classList.add('inactive');
 
 					if (guess === word) {
 						allowInput = false;
