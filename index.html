@@ -346,11 +346,16 @@
 		let wordIndex = 0;
 		let guess = '';
 		let allowInput = false;
+		let sleeping = false;
 
 		let guessRows;
 		let inputCells;
 		let guessCount;
 		let moodTimer;
+		let sleepTimer = setTimeout(() => {
+			setMood('tired', false);
+			sleeping = true;
+		}, 60000);
 
 		function generateTable(size) {
 			let html = '';
@@ -392,6 +397,17 @@
 				const keyElement = keyboard.querySelector('[data-key="' + pressedKey + '"]');
 
 				if (keyElement) {
+					if (sleeping) {
+						setMood('surprise');
+						sleeping = false;
+					}
+
+					clearTimeout(sleepTimer);
+					sleepTimer = setTimeout(() => {
+						setMood('tired');
+						sleeping = true;
+					}, 60000);
+
 					keyElement.classList.add('active');
 
 					setTimeout(() => {
@@ -470,12 +486,14 @@
 							setMood('smile');
 						} else {
 							setMood('happy', false);
+							clearTimeout(sleepTimer);
 						}
 					} else if (guessCount === 5) {
 						allowInput = false;
 						keyboard.classList.add('inactive');
 
 						setMood('sad', false);
+						clearTimeout(sleepTimer);
 					} else {
 						inputCells = guessRows[++guessCount].children;
 
