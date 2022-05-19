@@ -61,9 +61,28 @@
 			padding-bottom: 100%;
 		}
 
+		figure,
+		blockquote {
+			margin: 0;
+		}
+
+		figcaption {
+			margin: 8px;
+			text-align: right;
+			opacity: 0;
+			transition: opacity .3s ease-in;
+		}
+
 		p {
+			opacity: 0;
+			transition: opacity .3s ease-in;
 			margin: 0;
 			letter-spacing: 4px;
+		}
+
+		p.reveal,
+		figcaption.reveal {
+			opacity: 1;
 		}
 
 		.sentence-container {
@@ -208,7 +227,12 @@
 <body>
 	<div class="sentence-container">
 		<img id="image" src="assets/nin-pixel-cat/neutral.png">
-		<p id="sentence"></p>
+		<figure>
+			<blockquote>
+				<p id="sentence"></p>
+			</blockquote>
+			<figcaption id="author"></figcaption>
+		</figure>
 	</div>
 
 	<div class="guesses-container" id="guesses" style="opacity: 0">
@@ -313,14 +337,26 @@
 				}
 
 				selectedSentence = sentences[dateIndex].text;
+				author = '-' + sentences[dateIndex].author;
 			} else {
 				selectedSentence = decodeURIComponent(escape(window.atob(customString)));
+			}
+
+			if (!author) {
+				author = '-Anonymous';
 			}
 			
 			sentenceElements = selectedSentence.split(/[^a-z]/gi).filter(e => e);
 			word = sentenceElements[0].toLowerCase();
 
+			if (!selectedSentence.match('/[\.\?\!]/')) {
+				selectedSentence + '.';
+			}
+
+			selectedSentence = '"' + selectedSentence + '"';
+
 			sentenceContainer.innerHTML = selectedSentence.replaceAll(/[a-z]/gi, '_').replaceAll(/_+/g, '<span>$&</span>');
+			sentenceContainer.classList.add('reveal');
 			generateTable(word.length);
 
 			allowInput = true;
@@ -329,11 +365,12 @@
 		}
 
 		let sentences = [
-			'Oh dear, we couldn\'t seem to reach the quotes database'
+			'Oh dear, we couldn\'t seem to reach the quotes database.'
 		];
 
 		const sentenceContainer = document.getElementById('sentence');
 		const imageContainer = document.getElementById('image');
+		const authorContainer = document.getElementById('author');
 
 		let selectedSentence;
 		let sentenceElements;
@@ -487,6 +524,11 @@
 						} else {
 							setMood('happy', false);
 							clearTimeout(sleepTimer);
+							authorContainer.innerHTML = author;
+
+							setTimeout(() => {
+								authorContainer.classList.add('reveal');
+							}, 1000);
 						}
 					} else if (guessCount === 5) {
 						allowInput = false;
