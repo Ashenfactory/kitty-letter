@@ -64,25 +64,30 @@
 		figure,
 		blockquote {
 			margin: 0;
+			letter-spacing: 4px;
 		}
 
 		figcaption {
 			margin: 8px;
 			text-align: right;
+			display: flex;
+			justify-content: flex-end;
+			align-items: center;
 			opacity: 0;
 			transition: opacity .3s ease-in;
+			pointer-events: none;
 		}
 
 		p {
+			margin: 0;
 			opacity: 0;
 			transition: opacity .3s ease-in;
-			margin: 0;
-			letter-spacing: 4px;
 		}
 
 		p.reveal,
 		figcaption.reveal {
 			opacity: 1;
+			pointer-events: auto;
 		}
 
 		.sentence-container {
@@ -144,6 +149,19 @@
 			background-size: 28px 18px;
 		}
 
+		.copy {
+			background-image: url(assets/copy.png);
+			background-position: center;
+			background-repeat: no-repeat;
+			background-size: 20px 24px;
+			height: 40px;
+			width: 40px;
+			cursor: pointer;
+			border-bottom: 2px solid #333;
+			background-color: #666;
+			transition: opacity .1s ease-in, background .2s ease-in;
+		}
+
 		.keyboard.inactive {
 			opacity: .75;
 		}
@@ -183,12 +201,14 @@
 			width: 150%;
 		}
 
-		.row div:hover {
+		.row div:hover,
+		.copy:hover {
 			opacity: .5;
 		}
 
 		.row div:active,
-		.row div.active {
+		.row div.active,
+		.copy:active {
 			opacity: .25;
 			border-top: 2px solid #000;
 			border-bottom: none;
@@ -226,12 +246,12 @@
 </head>
 <body>
 	<div class="sentence-container">
-		<img id="image" src="assets/nin-pixel-cat/neutral.png">
+		<img height="128" width="128" id="image" src="assets/nin-pixel-cat/neutral.png" alt="Kitty">
 		<figure>
 			<blockquote>
 				<p id="sentence"></p>
 			</blockquote>
-			<figcaption id="author"></figcaption>
+			<figcaption id="author"><div class="copy" id="copy" title="Copy to clipboard"></div></figcaption>
 		</figure>
 	</div>
 
@@ -331,6 +351,7 @@
 
 			if (!customString) {
 				let dateIndex = dateDiffInDays(new Date('2022-05-07'), new Date());
+				clipboardString = 'Kitty Letter #' + dateIndex + '\n';
 
 				if (dateIndex > sentences.length - 1) {
 					dateIndex = dateIndex % sentences.length - 1;
@@ -339,14 +360,16 @@
 				selectedSentence = sentences[dateIndex].text;
 				author = '-' + sentences[dateIndex].author;
 			} else {
+				clipboardString = 'Custom Kitty Letter' + '\n';
 				selectedSentence = decodeURIComponent(escape(window.atob(customString)));
 			}
 
 			if (!author) {
 				author = '-Anonymous';
 			}
-			
+
 			sentenceElements = selectedSentence.split(/[^a-z]/gi).filter(e => e);
+			clipboardEmoji = Array.from('🟥'.repeat(sentenceElements.length));
 			word = sentenceElements[0].toLowerCase();
 
 			if (!selectedSentence.match('/[\.\?\!]/')) {
@@ -371,10 +394,21 @@
 		const sentenceContainer = document.getElementById('sentence');
 		const imageContainer = document.getElementById('image');
 		const authorContainer = document.getElementById('author');
+		const copyContainer = document.getElementById('copy');
+		const emoji = [
+			'1️⃣',
+			'2️⃣',
+			'3️⃣',
+			'4️⃣',
+			'5️⃣',
+			'6️⃣'
+		];
 
 		let selectedSentence;
 		let sentenceElements;
 		let word;
+		let clipboardEmoji;
+		let clipboardString;
 
 		const guesses = document.getElementById('guesses');
 		const keyboard = document.getElementById('keyboard');
@@ -496,6 +530,10 @@
 						oldWord.innerHTML = sentenceElements[sentenceIndex];
 						oldWord.className = '';
 
+						console.log(guessCount);
+
+						clipboardEmoji[sentenceIndex] = emoji[guessCount];
+
 						if (sentenceIndex !== sentenceElements.length - 1) {
 							setTimeout(() => {
 								guesses.style.opacity = 0;
@@ -524,7 +562,9 @@
 						} else {
 							setMood('happy', false);
 							clearTimeout(sleepTimer);
-							authorContainer.innerHTML = author;
+							authorContainer.prepend(author);
+
+							clipboardString += clipboardEmoji.join('');
 
 							setTimeout(() => {
 								authorContainer.classList.add('reveal');
@@ -536,6 +576,12 @@
 
 						setMood('sad', false);
 						clearTimeout(sleepTimer);
+
+						clipboardString += clipboardEmoji.join('');
+
+						setTimeout(() => {
+							authorContainer.classList.add('reveal');
+						}, 1000);
 					} else {
 						inputCells = guessRows[++guessCount].children;
 
@@ -561,6 +607,10 @@
 			if (e.target.dataset.key) {
 				keyInput(e.target.dataset.key);
 			}
+		});
+
+		copyContainer.addEventListener('click', () => {
+			navigator.clipboard.writeText(clipboardString);
 		});
 
 		fetch('https://raw.githubusercontent.com/dwyl/quotes/main/quotes.json')
